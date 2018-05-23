@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Malgate - Map Make</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+	<style type="text/css">
+		html, body, table {
+			margin:0;
+			padding:0;
+		}
+		table {
+			overflow: scroll;
+			max-width: 500px;
+			border: 1px solid black;
+			padding: 100px;
+		}
+		tr {
+			overflow: scroll;
+		}
+		td {
+			border: 1px dashed grey;
+			min-width: 20px;max-width: 20px;
+			min-height: 20px;max-height: 20px;
+			display: table-cell;
+			text-align: center;
+			overflow: hidden;
+			cursor: pointer;
+			  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+		}
+	</style>
+</head>
+<script type="text/javascript">
+	
+</script>
+<body onload="BrushController.loadButtons(document.getElementById('buttonHolder'));">
+	<nav>
+		<button onclick="giveLayout(100,100);">New File</button>
+         <input type="file" name="File Upload" id="upload" accept=".gate" />
+         <button onclick="exportLayout();">Export File</button>
+	</nav>
+	<nav id="buttonHolder"></nav>
+	<table id="table"></table>
+	<script type="text/javascript">
+
+		var BrushController = {
+			brushes: [
+				{
+					name: 'empty',
+					data: {
+						color: 'white',
+					}
+				},
+				{
+					name: 'trees',
+					data: {
+						name: 'tree',
+						color: 'green',
+						amount: 15
+					}
+				},
+				{
+					name: 'rocks',
+					data: {
+						name: 'rock',
+						color: 'grey',
+						amount: 10
+					}
+				}
+			],
+			loadButtons: function(_element){
+				var scope = this;
+				for (i in this.brushes){
+					var btn = document.createElement('button');
+					btn.innerHTML = this.brushes[i].name;
+					btn.brush = this.brushes[i];
+					btn.addEventListener('click', function(){
+						BrushController.currentBrush = this.brush;
+					})
+					_element.appendChild(btn);
+				}
+			},
+			currentBrush: null
+		}
+
+
+		document.getElementById('upload').addEventListener('change', importLayoutFromFile, false);
+		function giveLayout(_w, _h){
+			var table = document.getElementById('table');
+    		$("#table").empty();
+			for (var w = 0; w < _w; w++) {
+				var tr = document.createElement("TR");
+				for (var h = 0; h < _h; h++) {
+					var td = document.createElement("TD");
+					td.innerHTML = '-';
+					td.gameData = '';
+					td.addEventListener('mousemove',function(e){
+						if(e.buttons < 1) return;
+						this.innerHTML = BrushController.currentBrush.name;
+						this.gameData = BrushController.currentBrush.data;
+						this.style.background = BrushController.currentBrush.data.color;
+					})
+					tr.appendChild(td);
+				}
+				table.appendChild(tr);
+			}
+		}
+		function exportLayout(_table){
+			var table = document.getElementById('table');
+			if (_table) table = _table;
+			var grid = {};
+			for (var w = 0; w < table.childNodes.length; w++) {
+				var tr = table.childNodes[w];
+				var new_row = {};
+				for (var h = 0; h < tr.childNodes.length; h++) {
+					var td = tr.childNodes[h];
+					var cell_data = td.gameData;
+					new_row[h] = cell_data;
+				}
+				grid[w] = new_row;
+			}
+			console.log(grid)
+			saveText(JSON.stringify(grid), 'output.gate')
+		}
+		function saveText(text, filename){
+		  var a = document.createElement('a');
+		  a.setAttribute('href', 'data:text/plain;charset=utf-u,'+(text));
+		  a.setAttribute('download', filename);
+		  a.click()
+		}
+		function importLayoutFromFile(_e){
+			console.log(_e)
+		    var filePath = $("#upload").val();
+		    var startIndex = filePath.indexOf('\\') >= 0 ? filePath.lastIndexOf('\\') : filePath.lastIndexOf('/');
+		    var filename = filePath.substring(startIndex);
+		    if(filename.indexOf('\\') === 0 || filename.indexOf('/') === 0) {
+		        filename = filename.substring(1);
+		    }
+
+		    $.ajax({
+		        url: filename,
+		        success: onOpenLoad
+		    });
+		}
+
+		function onOpenLoad(fileContent) {
+		    var data = JSON.parse(fileContent);
+		    console.log(data);
+
+			var table = document.getElementById('table');
+    		$("#table").empty();
+			for (w in data) {
+				var tr = document.createElement("TR");
+				for (h in data[w]) {
+					var td = document.createElement("TD");
+					td.innerHTML = data[w][h].name;
+					if (!data[w][h].name) td.innerHTML = '-';
+					td.gameData = data[w][h];
+					td.style.background = data[w][h].color;
+					td.addEventListener('mousemove',function(e){
+						if(e.buttons < 1) return;
+						this.innerHTML = BrushController.currentBrush.name;
+						this.gameData = BrushController.currentBrush.data;
+						this.style.background = BrushController.currentBrush.data.color;
+					})
+					tr.appendChild(td);
+				}
+				table.appendChild(tr);
+			}
+		    // do something with the data
+		}
+
+	</script>
+</body>
+</html>
